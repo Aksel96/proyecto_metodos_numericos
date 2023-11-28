@@ -1,5 +1,10 @@
 TOLERANCIA = 1e-6  # Tolerancia del error de 4 decimales
 MAX_ITERACIONES = 6  # Numero maximo de iteraciones de los metodos
+MATRIZ_DEFECTO = [[4, 2, -1],
+                  [-5, 5, 1],
+                  [-2, -3, 4]]
+VECTOR_DEFECTO = [7, 12, 15]
+VALORES_INICIALES_DEF = [0, 0, 0]
 
 
 def jacobi(matriz, vector_resultados, x0):
@@ -9,27 +14,22 @@ def jacobi(matriz, vector_resultados, x0):
     # Inicializar el vector solución con la aproximación inicial
     x = x0.copy()
 
-    # Inicializar la variable de iteración
     iteracion = 0
 
-    # Iterar hasta alcanzar el número máximo de iteraciones
     while iteracion < MAX_ITERACIONES:
         # Almacenar la solución de la iteración anterior
         x_anterior = x.copy()
 
         # Actualizar cada componente de la solución utilizando el método de Jacobi
         for i in range(n):
-            # Calcular la suma ponderada de las variables anteriores
+            # Calcular la suma de las variables anteriores
             sigma = sum(matriz[i][j] * x_anterior[j] for j in range(n) if j != i)
             # Actualizar la variable actual utilizando la fórmula de Jacobi
             x[i] = (vector_resultados[i] - sigma) / matriz[i][i]
 
-        # Calcular los errores relativos para cada variable
         errores_relativos = [abs((x[i] - x_anterior[i]) / x[i]) if x[i] != 0 else 0 for i in range(n)]
-        # Calcular el máximo error relativo
         error_relativo_max = max(errores_relativos)
 
-        # Imprimir información sobre la iteración actual
         print(f"Iteración {iteracion + 1}:")
         print(f"x = {x[0]:.6f}, y = {x[1]:.6f}, z = {x[2]:.6f}")
         print(
@@ -41,51 +41,54 @@ def jacobi(matriz, vector_resultados, x0):
             print("Convergencia alcanzada.")
             break
 
-        # Incrementar la variable de iteración
         iteracion += 1
 
-    # Devolver el vector solución
     return x
 
 
-def gauss_jordan(matrizNDim, vectorResultados):  # Funcion del metodo de gauss jordan
-    n = len(matrizNDim)  # Obtiene la dimensión de la matriz cuadrada
+def gauss_jordan(matriz, resultados):  # Funcion gauss jordan
+    filas, columnas = len(matriz), len(matriz[0])
 
-    # Fase de eliminación hacia adelante
-    for p in range(n - 1):
-        for j in range(p + 1, n):
-            valor = -matrizNDim[j][p] / matrizNDim[p][p]
+    for i in range(filas):
+        # Hacer que el elemento diagonal sea 1
+        elem_diagonal = matriz[i][i]
+        for j in range(columnas):
+            matriz[i][j] /= elem_diagonal
+        resultados[i] /= elem_diagonal
 
-            # Actualiza la fila j de la matriz y el elemento correspondiente en el vector de resultados
-            for i in range(n):
-                matrizNDim[j][i] = valor * matrizNDim[p][i] + matrizNDim[j][i]
-            vectorResultados[j] = valor * vectorResultados[p] + vectorResultados[j]
+        # Hacer ceros en la columna actual (excepto en el elemento diagonal)
+        for k in range(filas):
+            if k != i:
+                factor = matriz[k][i]
+                for j in range(columnas):
+                    matriz[k][j] -= factor * matriz[i][j]
+                resultados[k] -= factor * resultados[i]
 
-    x = [0] * n  # Inicializa la lista para almacenar la solución
+        print(f"Iteración {i + 1}:")
+        imprimir_matriz(matriz, resultados)
 
-    # Fase de sustitución hacia atrás para encontrar las soluciones del sistema
-    for i in range(n - 1, -1, -1):
-        suma = sum(matrizNDim[i][j] * x[j] for j in range(i, n))
-        x[i] = (vectorResultados[i] - suma) / matrizNDim[i][i]  # Calcula la solución para la variable x[i]
+    return resultados
 
-    return list(x)  # Devuelve la lista de soluciones
+
+def imprimir_matriz(matriz, resultados):  # Funcion que imprime la matriz con formato
+    for i in range(len(matriz)):
+        fila = [f"{coef:.2f}" for coef in matriz[i]]
+        print(f"{fila} | {resultados[i]:.2f}")
+    print("-" * 30)
 
 
 # Función para calcular el porcentaje de error relativo entre elementos correspondientes de dos listas
 def calculate_error(previous, current):
-    # Calcula los errores utilizando una comprensión de listas
     errors = [abs((current[i] - previous[i]) / current[i]) * 100 if current[i] != 0 else 0 for i in range(len(current))]
 
-    # Formatea los errores con seis decimales usando una comprensión de listas
     formatted_errors = [f'{error:.6f}' for error in errors]
 
-    # Devuelve los errores formateados
     return formatted_errors
 
 
 # Función que implementa el método de Gauss-Seidel para resolver un sistema de ecuaciones lineales
 def gauss_seidel(matriz, vector_resultados, valores_iniciales):
-    # Obtiene el número de ecuaciones/variables
+    # Obtiene el número de variables
     n = len(vector_resultados)
 
     # Inicializa la solución actual con la suposición inicial
@@ -93,7 +96,6 @@ def gauss_seidel(matriz, vector_resultados, valores_iniciales):
 
     # Itera hasta la convergencia o se alcance el número máximo de iteraciones
     for iteration in range(MAX_ITERACIONES):
-        # Crea una copia de la solución actual para almacenar la nueva solución
         x_new = x.copy()
 
         # Actualiza cada componente de la solución utilizando el método de Gauss-Seidel
@@ -104,30 +106,27 @@ def gauss_seidel(matriz, vector_resultados, valores_iniciales):
             # Actualiza el componente de la solución actual utilizando la fórmula de Gauss-Seidel
             x_new[i] = (vector_resultados[i] - sum_ax) / matriz[i][i]
 
-        # Calcula el error entre la solución actual y la anterior
         error = calculate_error(x, x_new)
 
-        # Formatea la nueva solución con seis decimales utilizando una comprensión de listas
         formatted_x = [f'{value:.6f}' for value in x_new]
 
-        # Imprime información de la iteración, incluyendo el número de iteración, la solución actual y el error
-        print(f"Iteración {iteration + 1}: x = {formatted_x},\nError (%) = {error}")
+        print(f"Iteración {iteration + 1}: \nx = {formatted_x[0]}, y = {formatted_x[1]}, z = {formatted_x[2]}")
+        print(f"Error en x: {error[0]} , Error en y: {error[1]} , Error en z: {error[2]}")
+        print("---------------------------------------------------------------------------------------------------")
 
         # Verifica si el error para todos los componentes está por debajo de la tolerancia especificada
         if all(float(err) < TOLERANCIA for err in error):
-            # Si es así, rompe el bucle de iteración
             break
 
         # Actualiza la solución actual para la próxima iteración
         x = x_new
 
-    # Devuelve la solución final
     return x
 
 
 def llenado_matriz(numFil=0):  # Funcion que llena la matriz y el vector de resultados
-    matrizNDim = []  # Matriz donde se iran agregando los renglones de la matriz
-    vectorResultados = []  # Arreglo donde se agregara el vecto de resultados
+    matrizNDim = []
+    vectorResultados = []
     for i in range(numFil):
         valMatriz = []  # Temporal de que almacena los imputs del usuario
         if i == 0:
@@ -180,26 +179,59 @@ def main():
         match opcion:  # Usamos un switch para ejecutar el metodo con la opcion deseada
             case "a":  # Caso para el metodo de gauss seidel
                 print("Solucion de un sistema de ecuaciones por el metodo de Gauss-Seidel")
-                numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
-                matriz, vector_resultados = llenado_matriz(numero_filas)
-                x0 = llenar_x0()
-                solucion = gauss_seidel(matriz,vector_resultados,x0)
-                print("Solución final:")
-                formatted_solution = [f'{value:.6f}' for value in solucion]
-                print(f"x = {formatted_solution[0]}, y = {formatted_solution[1]}, z = {formatted_solution[2]}")
+                opcion_matriz = input("Quieres usar la matriz y los valores iniciales por defecto? [S/ SI , N/ NO] ").upper()
+                if opcion_matriz == "S":
+                    print("La matriz original es:")
+                    imprimir_matriz(MATRIZ_DEFECTO, VECTOR_DEFECTO)
+                    solucion_defecto = gauss_seidel(MATRIZ_DEFECTO,VECTOR_DEFECTO,VALORES_INICIALES_DEF)
+                    print("Solución final:")
+                    formatted_solution = [f'{value:.6f}' for value in solucion_defecto]
+                    print(f"x = {formatted_solution[0]}, y = {formatted_solution[1]}, z = {formatted_solution[2]}")
+                else:
+                    numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
+                    matriz, vector_resultados = llenado_matriz(numero_filas)
+                    # Se llenan los valores iniciales
+                    x0 = llenar_x0()
+                    print("La matriz es:")
+                    imprimir_matriz(matriz, vector_resultados)
+                    solucion = gauss_seidel(matriz, vector_resultados, x0)
+                    print("Solución final:")
+                    formatted_solution = [f'{value:.6f}' for value in solucion]
+                    print(f"x = {formatted_solution[0]}, y = {formatted_solution[1]}, z = {formatted_solution[2]}")
             case "b":  # Caso para jacobi
                 print("Solucion de un sistema de ecuaciones por el metodo de Jacobi")
-                numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
-                matriz, vector_resultados = llenado_matriz(numero_filas)
-                x0 = llenar_x0()
-                resultado = jacobi(matriz, vector_resultados, x0)
-                print(F"Solucion final: {resultado}")
+                opcion_matriz = input("Quieres usar la matriz por defecto? [S/ SI , N/ NO] ").upper()
+                if opcion_matriz == "S":
+                    print("La matriz original es:")
+                    imprimir_matriz(MATRIZ_DEFECTO, VECTOR_DEFECTO)
+                    solucion_jacobi_defecto = jacobi(MATRIZ_DEFECTO,VECTOR_DEFECTO,VALORES_INICIALES_DEF)
+                    print(F"Solucion final: {solucion_jacobi_defecto}")
+                else:
+                    numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
+                    matriz, vector_resultados = llenado_matriz(numero_filas)
+                    # Se dan los valore iniciales
+                    x0 = llenar_x0()
+                    print("La matriz es:")
+                    imprimir_matriz(matriz, vector_resultados)
+                    resultado = jacobi(matriz, vector_resultados, x0)
+                    print(F"Solucion final: {resultado}")
             case "c":  # caso para gauss jordan
                 print("Solucion de un sistema de ecuaciones por el metodo de Gauss-Jordan")
-                numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
-                matriz, vector_resultados = llenado_matriz(numero_filas)
-                resultado = gauss_jordan(matriz, vector_resultados)
-                print("El valor de las incognitas en orden es el siguiente: {}".format(resultado))
+                opcion_matriz = input("Quieres usar la matriz por defecto? [S/ SI , N/ NO] ").upper()
+                if opcion_matriz == "S":
+                    print("La matriz original es:")
+                    imprimir_matriz(MATRIZ_DEFECTO, VECTOR_DEFECTO)
+                    resultado_defecto = gauss_jordan(MATRIZ_DEFECTO, VECTOR_DEFECTO)
+                    print(
+                        "El valor de las incognitas en orden es el siguiente: {}".format(resultado_defecto))
+                else:
+                    numero_filas = int(input("Introduce el numero de incognitas que tiene la matriz: "))
+                    matriz, vector_resultados = llenado_matriz(numero_filas)
+                    print("La matriz es:")
+                    imprimir_matriz(matriz, vector_resultados)
+                    resultado = gauss_jordan(matriz, vector_resultados)
+                    print("El valor de las incognitas en orden es el siguiente: {}".format(resultado))
+
             case "s":  # caso de salir del programa
                 break
             case _:
